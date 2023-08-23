@@ -21,7 +21,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -42,6 +45,7 @@ public class QrServiceImpl implements QrService {
                 BarcodeFormat.QR_CODE, width, height);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         MatrixToImageWriter.writeToStream(matrix, "png", outputStream);
+        log.info(Arrays.toString(outputStream.toByteArray()));
         String qrImage = Base64.getEncoder().encodeToString(outputStream.toByteArray());
         log.info("byte array for QR-CODE: {}",qrImage);
         return qrRepository.save(QrCode.builder()
@@ -52,29 +56,24 @@ public class QrServiceImpl implements QrService {
     }
 
     @Override
-    public QrCode readQr(String qrCode) throws NotFoundException {
-        try {
-            byte[] qrByte = Base64.getDecoder().decode(qrCode.getBytes());
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(qrByte);
-            BufferedImage bufferedImage = ImageIO.read(byteArrayInputStream);
-            BufferedImageLuminanceSource bufferedImageLuminanceSource = new BufferedImageLuminanceSource(bufferedImage);
-            HybridBinarizer hybridBinarizer = new HybridBinarizer(bufferedImageLuminanceSource);
-            BinaryBitmap binaryBitmap = new BinaryBitmap(hybridBinarizer);
-            MultiFormatReader multiFormatReader = new MultiFormatReader();
+    public QrCode readQr(byte[] qrCode) throws NotFoundException, IOException {
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(qrCode);
+        BufferedImage bufferedImage = ImageIO.read(inputStream);
 
-            Result result = multiFormatReader.decode(binaryBitmap);
+        MultiFormatReader reader = new MultiFormatReader();
+
+        Map<DecodeHintType, Object> hints = new HashMap<>();
+        hints.put(DecodeHintType.CHARACTER_SET, "UTF-8");
+
+        BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(bufferedImage)));
+        try {
+            Result result = reader.decode(binaryBitmap, hints);
             log.info(result.getText(), result.getResultMetadata());
-            QrCode qr = qrRepository.findByQrImage(qrCode);
-            return QrCode.builder()
-                    .id(qr.getId())
-                    .restaurantId(qr.getRestaurantId())
-                    .userId(qr.getUserId())
-                    .tableNo(qr.getTableNo())
-                    .qrImage(qr.getQrImage()).build();
-        }
-        catch (Exception e){
+            return QrCode.builder().build();
+        } catch (Exception e) {
             e.printStackTrace();
+            return QrCode.builder().build();
         }
-        return null;
+
     }
 }

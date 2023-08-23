@@ -32,7 +32,7 @@ public class QrController {
                 .content(objectMapper.writeValueAsString(qr)).build();
     }
     @PostMapping(path = "/read-qr")
-    public CommonResponse readQr(@RequestBody String qrCode) throws JsonProcessingException, NotFoundException {
+    public CommonResponse readQr(@RequestBody byte[] qrCode) throws IOException, NotFoundException {
         ObjectMapper objectMapper = new ObjectMapper();
         QrCode decodedQr = qrService.readQr(qrCode);
         return CommonResponse.builder()

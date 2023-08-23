@@ -11,5 +11,5 @@ import java.util.Map;
 
 public interface QrService {
     QrCode createQrCode(QrCode qrCode) throws IOException, WriterException;
-    QrCode readQr(String qrCode) throws NotFoundException;
+    QrCode readQr(byte[] qrCode) throws NotFoundException, IOException;
 }
